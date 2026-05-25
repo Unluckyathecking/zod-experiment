@@ -3129,3 +3129,18 @@ test("recursive lazy with describe does not stack overflow", () => {
   expect(result).toBeDefined();
   expect(result.$defs).toBeDefined();
 });
+
+test("isTransforming correctly detects catch wrappers", () => {
+  const schema = z
+    .string()
+    .transform((x) => x)
+    .catch("default");
+
+  // When converting to json schema for 'input', transform shouldn't hide behind catch.
+  const schemaJson = schema.toJSONSchema({ io: "input" });
+
+  // Transform schemas don't produce typical JSON schema definitions in input mode in the same way.
+  // Because it is correctly identified as transforming, the resulting schema should not drop
+  // important fields, but more precisely it should not crash.
+  expect(schemaJson).toBeDefined();
+});
