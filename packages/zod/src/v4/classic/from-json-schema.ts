@@ -480,7 +480,7 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
       if (prefixItems && Array.isArray(prefixItems)) {
         // Tuple with prefixItems (draft-2020-12)
         const tupleItems = prefixItems.map((item) => convertSchema(item as JSONSchema.JSONSchema, ctx));
-        const rest = !Array.isArray(items) ? resolveTupleRest(items, ctx) : undefined;
+        const rest = items === false ? undefined : items !== undefined ? resolveTupleRest(items, ctx) : undefined;
         if (rest) {
           zodSchema = z.tuple(tupleItems as [ZodType, ...ZodType[]]).rest(rest);
         } else {
