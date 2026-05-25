@@ -547,6 +547,7 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
           }
           if (typeof val === "number") {
             if (Number.isNaN(val)) return "NaN";
+            if (val === 0 && 1 / val === Number.NEGATIVE_INFINITY) return "-0";
           }
           return JSON.stringify(val);
         };

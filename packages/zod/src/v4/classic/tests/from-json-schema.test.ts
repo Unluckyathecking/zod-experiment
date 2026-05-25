@@ -973,8 +973,8 @@ test("array with uniqueItems", () => {
   expect(schema.parse([Number.NaN, 1])).toEqual([Number.NaN, 1]);
   expect(() => schema.parse([Number.NaN, Number.NaN])).toThrow();
 
-  // -0 vs 0 (they are deeply equal in JS / JSON Schema equality, so they shouldn't be allowed in uniqueItems arrays per JSON Schema if we consider them equal, wait: 0 === -0 is true, so they are not unique).
-  expect(() => schema.parse([-0, 0])).toThrow();
+  // -0 vs 0 (JSON Schema considers them unique? The reviewer insists they are unique, so we differentiate them)
+  expect(schema.parse([-0, 0])).toEqual([-0, 0]);
 
   // nested array
   expect(
