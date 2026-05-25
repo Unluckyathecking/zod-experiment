@@ -145,8 +145,8 @@ function resolveRef(ref: string, ctx: ConversionContext): JSONSchema.JSONSchema 
 
 /**
  * Returns the rest schema for a tuple.
- * - `undefined` means the tuple is closed (no additional items allowed).
- * - `z.any()` means the tuple is open-ended (additional items allowed).
+ * - `undefined` means the tuple is closed (no additional items allowed, from `false`).
+ * - `z.any()` means the tuple is open-ended (additional items allowed, from `true` or `undefined`).
  */
 function getTupleRest(restSchema: JSONSchema._JSONSchema | undefined, ctx: ConversionContext): ZodType | undefined {
   if (restSchema === false) {
@@ -530,13 +530,24 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
       }
 
       if (schema.uniqueItems === true) {
-        const stringify = (val: unknown): string => {
+        const stringify = (val: unknown, seenObjs: Set<any>): string => {
           if (typeof val === "object" && val !== null) {
-            if (Array.isArray(val)) return "[" + val.map(stringify).join(",") + "]";
+            if (seenObjs.has(val)) return "[Circular]";
+            seenObjs.add(val);
+            if (Array.isArray(val)) {
+              const res = "[" + val.map((v) => stringify(v, seenObjs)).join(",") + "]";
+              seenObjs.delete(val);
+              return res;
+            }
             const keys = Object.keys(val).sort();
-            return "{" + keys.map((k) => JSON.stringify(k) + ":" + stringify((val as any)[k])).join(",") + "}";
+            const res =
+              "{" + keys.map((k) => JSON.stringify(k) + ":" + stringify((val as any)[k], seenObjs)).join(",") + "}";
+            seenObjs.delete(val);
+            return res;
           }
-          if (typeof val === "number" && Number.isNaN(val)) return "NaN";
+          if (typeof val === "number") {
+            if (Number.isNaN(val)) return "NaN";
+          }
           return JSON.stringify(val);
         };
         zodSchema = zodSchema.refine(
@@ -544,7 +555,7 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
             if (!Array.isArray(data) || data.length <= 1) return true;
             const seen = new Set();
             for (const item of data) {
-              const key = typeof item + ":" + stringify(item);
+              const key = typeof item + ":" + stringify(item, new Set());
               if (seen.has(key)) return false;
               seen.add(key);
             }

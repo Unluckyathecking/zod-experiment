@@ -973,6 +973,34 @@ test("array with uniqueItems", () => {
   expect(schema.parse([Number.NaN, 1])).toEqual([Number.NaN, 1]);
   expect(() => schema.parse([Number.NaN, Number.NaN])).toThrow();
 
+  // -0 vs 0 (they are deeply equal in JS / JSON Schema equality, so they shouldn't be allowed in uniqueItems arrays per JSON Schema if we consider them equal, wait: 0 === -0 is true, so they are not unique).
+  expect(() => schema.parse([-0, 0])).toThrow();
+
+  // nested array
+  expect(
+    schema.parse([
+      [1, 2],
+      [1, 3],
+    ])
+  ).toEqual([
+    [1, 2],
+    [1, 3],
+  ]);
+  expect(() =>
+    schema.parse([
+      [1, 2],
+      [1, 2],
+    ])
+  ).toThrow();
+
+  // circular objects
+  const obj1: any = { a: 1 };
+  obj1.self = obj1;
+  const obj2: any = { a: 1 };
+  obj2.self = obj2;
+  // Though fromJSONSchema deals with parsed JSON which doesn't have circular references usually, the refinement handles them.
+  expect(() => schema.parse([obj1, obj2])).toThrow();
+
   // object deep equal with key ordering
   expect(
     schema.parse([
