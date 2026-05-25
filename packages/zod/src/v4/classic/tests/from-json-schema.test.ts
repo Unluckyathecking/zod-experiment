@@ -163,6 +163,17 @@ test("tuple with prefixItems and items false rejects extra items (draft-2020-12)
   expect(() => schema.parse(["hello", 42])).toThrow();
 });
 
+test("tuple with prefixItems (multiple) and items false rejects extra items (draft-2020-12)", () => {
+  const schema = fromJSONSchema({
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "array",
+    prefixItems: [{ type: "string" }, { type: "number" }],
+    items: false,
+  });
+  expect(schema.parse(["hello", 42])).toEqual(["hello", 42]);
+  expect(() => schema.parse(["hello", 42, "extra"])).toThrow();
+});
+
 test("tuple with items array (draft-7)", () => {
   const schema = fromJSONSchema({
     $schema: "http://json-schema.org/draft-07/schema#",
@@ -948,10 +959,42 @@ test("Date default is coerced to its JSON string form", () => {
 test("array with uniqueItems", () => {
   const schema = fromJSONSchema({
     type: "array",
-    items: { type: "number" },
+    // omitted items to mean any,
     uniqueItems: true,
   });
 
+  // primitives
   expect(schema.parse([1, 2, 3])).toEqual([1, 2, 3]);
   expect(() => schema.parse([1, 2, 1])).toThrow();
+  expect(schema.parse([])).toEqual([]);
+  expect(schema.parse([1])).toEqual([1]);
+
+  // NaN
+  expect(schema.parse([Number.NaN, 1])).toEqual([Number.NaN, 1]);
+  expect(() => schema.parse([Number.NaN, Number.NaN])).toThrow();
+
+  // object deep equal with key ordering
+  expect(
+    schema.parse([
+      { a: 1, b: 2 },
+      { a: 1, c: 3 },
+    ])
+  ).toEqual([
+    { a: 1, b: 2 },
+    { a: 1, c: 3 },
+  ]);
+  expect(() =>
+    schema.parse([
+      { a: 1, b: 2 },
+      { b: 2, a: 1 },
+    ])
+  ).toThrow();
+
+  // false is no-op
+  const schemaFalse = fromJSONSchema({
+    type: "array",
+    items: { type: "number" },
+    uniqueItems: false,
+  });
+  expect(schemaFalse.parse([1, 1])).toEqual([1, 1]);
 });

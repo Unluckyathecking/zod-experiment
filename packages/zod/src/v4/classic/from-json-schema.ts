@@ -143,6 +143,11 @@ function resolveRef(ref: string, ctx: ConversionContext): JSONSchema.JSONSchema 
   throw new Error(`Reference not found: ${ref}`);
 }
 
+/**
+ * Returns the rest schema for a tuple.
+ * - `undefined` means the tuple is closed (no additional items allowed).
+ * - `z.any()` means the tuple is open-ended (additional items allowed).
+ */
 function getTupleRest(restSchema: JSONSchema._JSONSchema | undefined, ctx: ConversionContext): ZodType | undefined {
   if (restSchema === false) {
     return undefined;
@@ -525,15 +530,21 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
       }
 
       if (schema.uniqueItems === true) {
+        const stringify = (val: unknown): string => {
+          if (typeof val === "object" && val !== null) {
+            if (Array.isArray(val)) return "[" + val.map(stringify).join(",") + "]";
+            const keys = Object.keys(val).sort();
+            return "{" + keys.map((k) => JSON.stringify(k) + ":" + stringify((val as any)[k])).join(",") + "}";
+          }
+          if (typeof val === "number" && Number.isNaN(val)) return "NaN";
+          return JSON.stringify(val);
+        };
         zodSchema = zodSchema.refine(
-          (data: any) => {
+          (data: unknown) => {
             if (!Array.isArray(data) || data.length <= 1) return true;
             const seen = new Set();
             for (const item of data) {
-              const key =
-                typeof item === "object" && item !== null
-                  ? typeof item + ":" + JSON.stringify(item)
-                  : typeof item + ":" + String(item);
+              const key = typeof item + ":" + stringify(item);
               if (seen.has(key)) return false;
               seen.add(key);
             }
@@ -541,6 +552,8 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
           },
           { message: "Array items must be unique" }
         );
+      } else if (schema.uniqueItems === false) {
+        // Explicitly allowed by spec, no-op
       }
       break;
     }
