@@ -318,19 +318,6 @@ export function getElementAtPath(obj: any, path: (string | number)[] | null | un
   return path.reduce((acc, key) => acc?.[key], obj);
 }
 
-export function promiseAllObject<T extends object>(promisesObj: T): Promise<{ [k in keyof T]: Awaited<T[k]> }> {
-  const keys = Object.keys(promisesObj);
-  const promises = keys.map((key) => (promisesObj as any)[key]);
-
-  return Promise.all(promises).then((results) => {
-    const resolvedObj: any = {};
-    for (let i = 0; i < keys.length; i++) {
-      resolvedObj[keys[i]!] = results[i];
-    }
-    return resolvedObj;
-  });
-}
-
 export function randomString(length = 10): string {
   const chars = "abcdefghijklmnopqrstuvwxyz";
   let str = "";
@@ -409,16 +396,6 @@ export function shallowClone(o: any): any {
   if (o instanceof Map) return new Map(o);
   if (o instanceof Set) return new Set(o);
   return o;
-}
-
-export function numKeys(data: any): number {
-  let keyCount = 0;
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      keyCount++;
-    }
-  }
-  return keyCount;
 }
 
 export const getParsedType = (data: any): ParsedTypes => {
