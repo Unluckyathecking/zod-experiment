@@ -519,7 +519,9 @@ export function finalize<T extends schemas.$ZodType>(
 
     return finalized;
   } catch (err) {
-    throw new Error("Error converting schema to JSON: " + (err instanceof Error ? err.message : String(err)));
+    const error = new Error("Error converting schema to JSON: " + (err instanceof Error ? err.message : String(err)));
+    (error as any).cause = err;
+    throw error;
   }
 }
 
