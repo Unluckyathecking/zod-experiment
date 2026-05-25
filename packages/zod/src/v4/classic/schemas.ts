@@ -151,10 +151,12 @@ export interface ZodType<
     check: Ch,
     params?: string | core.$ZodCustomParams
   ): Ch extends (arg: any) => arg is infer R ? this & ZodType<R, core.input<this>> : this;
-  superRefine<RefinedOutput extends core.output<this>>(
-    refinement: (arg: core.output<this>, ctx: core.$RefinementCtx<core.output<this>>) => arg is RefinedOutput,
-    params?: core.$ZodSuperRefineParams
-  ): this & ZodType<RefinedOutput, core.input<this>>;
+  superRefine<
+    Ch extends (arg: core.output<this>, ctx: core.$RefinementCtx<core.output<this>>) => unknown | Promise<unknown>,
+  >(
+    check: Ch,
+    params?: string | core.$ZodCustomParams
+  ): Ch extends (arg: any, ctx: any) => arg is infer R ? this & ZodType<R, core.input<this>> : this;
   superRefine(
     refinement: (arg: core.output<this>, ctx: core.$RefinementCtx<core.output<this>>) => void | Promise<void>,
     params?: core.$ZodSuperRefineParams
