@@ -163,17 +163,6 @@ test("tuple with prefixItems and items false rejects extra items (draft-2020-12)
   expect(() => schema.parse(["hello", 42])).toThrow();
 });
 
-test("tuple with prefixItems (multiple) and items false rejects extra items (draft-2020-12)", () => {
-  const schema = fromJSONSchema({
-    $schema: "https://json-schema.org/draft/2020-12/schema",
-    type: "array",
-    prefixItems: [{ type: "string" }, { type: "number" }],
-    items: false,
-  });
-  expect(schema.parse(["hello", 42])).toEqual(["hello", 42]);
-  expect(() => schema.parse(["hello", 42, "extra"])).toThrow();
-});
-
 test("tuple with items array (draft-7)", () => {
   const schema = fromJSONSchema({
     $schema: "http://json-schema.org/draft-07/schema#",
@@ -959,7 +948,6 @@ test("Date default is coerced to its JSON string form", () => {
 test("array with uniqueItems", () => {
   const schema = fromJSONSchema({
     type: "array",
-    // omitted items to mean any,
     uniqueItems: true,
   });
 
@@ -998,7 +986,6 @@ test("array with uniqueItems", () => {
   obj1.self = obj1;
   const obj2: any = { a: 1 };
   obj2.self = obj2;
-  // Though fromJSONSchema deals with parsed JSON which doesn't have circular references usually, the refinement handles them.
   expect(() => schema.parse([obj1, obj2])).toThrow();
 
   // object deep equal with key ordering

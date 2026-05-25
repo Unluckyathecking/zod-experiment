@@ -143,11 +143,6 @@ function resolveRef(ref: string, ctx: ConversionContext): JSONSchema.JSONSchema 
   throw new Error(`Reference not found: ${ref}`);
 }
 
-/**
- * Returns the rest schema for a tuple.
- * - `undefined` means the tuple is closed (no additional items allowed, from `false`).
- * - `z.any()` means the tuple is open-ended (additional items allowed, from `true` or `undefined`).
- */
 function getTupleRest(restSchema: JSONSchema._JSONSchema | undefined, ctx: ConversionContext): ZodType | undefined {
   if (restSchema === false) {
     return undefined;
@@ -567,6 +562,7 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
       } else if (schema.uniqueItems === false) {
         // Explicitly allowed by spec, no-op
       }
+
       break;
     }
 
