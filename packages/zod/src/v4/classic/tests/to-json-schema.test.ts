@@ -3133,16 +3133,19 @@ test("recursive lazy with describe does not stack overflow", () => {
 test("isTransforming correctly detects catch wrappers", () => {
   const schema = z
     .string()
+    .describe("foo")
     .transform((x) => x)
     .catch("default");
 
-  const inputSchema = schema.toJSONSchema({ io: "input", unrepresentable: "any" });
+  const inputSchema = z.toJSONSchema(schema, { io: "input", unrepresentable: "any" });
   expect(inputSchema).toEqual({
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "string",
+    description: "foo",
   });
+  expect(inputSchema).not.toHaveProperty("default"); // verify stripping occurred
 
-  const outputSchema = schema.toJSONSchema({ io: "output", unrepresentable: "any" });
+  const outputSchema = z.toJSONSchema(schema, { io: "output", unrepresentable: "any" });
   expect(outputSchema).toEqual({
     $schema: "https://json-schema.org/draft/2020-12/schema",
     default: "default",
