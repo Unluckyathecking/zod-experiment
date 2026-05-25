@@ -893,3 +893,16 @@ test("Date default is coerced to its JSON string form", () => {
   const schema = fromJSONSchema({ type: "string", default: date as any });
   expect(schema.parse(undefined)).toBe(date.toISOString());
 });
+
+test("array with uniqueItems schema", () => {
+  const schema = fromJSONSchema({
+    type: "array",
+    uniqueItems: true,
+    items: { type: "string" },
+  });
+
+  const parsed1 = schema.parse(["foo", "bar"]);
+  expect(parsed1).toEqual(["foo", "bar"]);
+
+  expect(() => schema.parse(["foo", "foo"])).toThrow(/Items must be unique/);
+});

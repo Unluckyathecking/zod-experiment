@@ -458,7 +458,6 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
     }
 
     case "array": {
-      // TODO: uniqueItems is not supported
       // TODO: contains/minContains/maxContains are not supported
       // Check if this is a tuple (prefixItems or items as array)
       const prefixItems = schema.prefixItems;
@@ -518,7 +517,24 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
         zodSchema = arraySchema;
       } else {
         // No items specified - array of any
-        zodSchema = z.array(z.any());
+        let arraySchema = z.array(z.any());
+
+        // Apply constraints
+        if (typeof schema.minItems === "number") {
+          arraySchema = arraySchema.min(schema.minItems);
+        }
+        if (typeof schema.maxItems === "number") {
+          arraySchema = arraySchema.max(schema.maxItems);
+        }
+
+        zodSchema = arraySchema;
+      }
+
+      if (schema.uniqueItems) {
+        zodSchema = zodSchema.refine(
+          (items) => new Set(items as unknown[]).size === (items as unknown[]).length,
+          { message: "Items must be unique" }
+        );
       }
       break;
     }
