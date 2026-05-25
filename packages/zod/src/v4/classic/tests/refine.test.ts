@@ -520,6 +520,27 @@ describe("type refinement with type guards", () => {
     expect(schema.safeParse({ type: "test", age: 0 }).success).toEqual(true);
     expect(schema.safeParse(null).success).toEqual(false);
   });
+
+  test("superRefine - type narrowing chainability", () => {
+    const schema = z
+      .string()
+      .superRefine((s, _ctx): s is string => {
+        return typeof s === "string";
+      })
+      .min(5);
+
+    expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<string>();
+    expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<string>();
+  });
+
+  test("superRefine - narrowing union to single variant", () => {
+    const schema = z.union([z.string(), z.number()]).superRefine((val, _ctx): val is string => {
+      return typeof val === "string";
+    });
+
+    expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<string | number>();
+    expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<string>();
+  });
 });
 
 test("when", () => {

@@ -154,7 +154,7 @@ export interface ZodType<
   superRefine<RefinedOutput extends core.output<this>>(
     refinement: (arg: core.output<this>, ctx: core.$RefinementCtx<core.output<this>>) => arg is RefinedOutput,
     params?: core.$ZodSuperRefineParams
-  ): ZodType<RefinedOutput, core.input<this>>;
+  ): this & ZodType<RefinedOutput, core.input<this>>;
   superRefine(
     refinement: (arg: core.output<this>, ctx: core.$RefinementCtx<core.output<this>>) => void | Promise<void>,
     params?: core.$ZodSuperRefineParams
