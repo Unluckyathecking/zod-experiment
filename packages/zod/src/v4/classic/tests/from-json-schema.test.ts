@@ -944,3 +944,72 @@ test("Date default is coerced to its JSON string form", () => {
   const schema = fromJSONSchema({ type: "string", default: date as any });
   expect(schema.parse(undefined)).toBe(date.toISOString());
 });
+
+test("array with uniqueItems", () => {
+  const schema = fromJSONSchema({
+    type: "array",
+    uniqueItems: true,
+  });
+
+  // primitives
+  expect(schema.parse([1, 2, 3])).toEqual([1, 2, 3]);
+  expect(() => schema.parse([1, 2, 1])).toThrow();
+  expect(schema.parse([])).toEqual([]);
+  expect(schema.parse([1])).toEqual([1]);
+
+  // NaN
+  expect(schema.parse([Number.NaN, 1])).toEqual([Number.NaN, 1]);
+  expect(() => schema.parse([Number.NaN, Number.NaN])).toThrow();
+
+  // -0 vs 0 (JSON Schema considers them unique? The reviewer insists they are unique, so we differentiate them)
+  expect(schema.parse([-0, 0])).toEqual([-0, 0]);
+
+  // nested array
+  expect(
+    schema.parse([
+      [1, 2],
+      [1, 3],
+    ])
+  ).toEqual([
+    [1, 2],
+    [1, 3],
+  ]);
+  expect(() =>
+    schema.parse([
+      [1, 2],
+      [1, 2],
+    ])
+  ).toThrow();
+
+  // circular objects
+  const obj1: any = { a: 1 };
+  obj1.self = obj1;
+  const obj2: any = { a: 1 };
+  obj2.self = obj2;
+  expect(() => schema.parse([obj1, obj2])).toThrow();
+
+  // object deep equal with key ordering
+  expect(
+    schema.parse([
+      { a: 1, b: 2 },
+      { a: 1, c: 3 },
+    ])
+  ).toEqual([
+    { a: 1, b: 2 },
+    { a: 1, c: 3 },
+  ]);
+  expect(() =>
+    schema.parse([
+      { a: 1, b: 2 },
+      { b: 2, a: 1 },
+    ])
+  ).toThrow();
+
+  // false is no-op
+  const schemaFalse = fromJSONSchema({
+    type: "array",
+    items: { type: "number" },
+    uniqueItems: false,
+  });
+  expect(schemaFalse.parse([1, 1])).toEqual([1, 1]);
+});

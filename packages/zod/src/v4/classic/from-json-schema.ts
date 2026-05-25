@@ -468,7 +468,6 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
     }
 
     case "array": {
-      // TODO: uniqueItems is not supported
       // TODO: contains/minContains/maxContains are not supported
       // Check if this is a tuple (prefixItems or items as array)
       const prefixItems = schema.prefixItems;
@@ -524,6 +523,46 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
         // No items specified - array of any
         zodSchema = z.array(z.any());
       }
+
+      if (schema.uniqueItems === true) {
+        const stringify = (val: unknown, seenObjs: Set<any>): string => {
+          if (typeof val === "object" && val !== null) {
+            if (seenObjs.has(val)) return "[Circular]";
+            seenObjs.add(val);
+            if (Array.isArray(val)) {
+              const res = "[" + val.map((v) => stringify(v, seenObjs)).join(",") + "]";
+              seenObjs.delete(val);
+              return res;
+            }
+            const keys = Object.keys(val).sort();
+            const res =
+              "{" + keys.map((k) => JSON.stringify(k) + ":" + stringify((val as any)[k], seenObjs)).join(",") + "}";
+            seenObjs.delete(val);
+            return res;
+          }
+          if (typeof val === "number") {
+            if (Number.isNaN(val)) return "NaN";
+            if (val === 0 && 1 / val === Number.NEGATIVE_INFINITY) return "-0";
+          }
+          return JSON.stringify(val);
+        };
+        zodSchema = zodSchema.refine(
+          (data: unknown) => {
+            if (!Array.isArray(data) || data.length <= 1) return true;
+            const seen = new Set();
+            for (const item of data) {
+              const key = typeof item + ":" + stringify(item, new Set());
+              if (seen.has(key)) return false;
+              seen.add(key);
+            }
+            return true;
+          },
+          { message: "Array items must be unique" }
+        );
+      } else if (schema.uniqueItems === false) {
+        // Explicitly allowed by spec, no-op
+      }
+
       break;
     }
 
