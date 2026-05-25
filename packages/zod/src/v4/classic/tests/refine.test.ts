@@ -494,33 +494,32 @@ describe("type refinement with type guards", () => {
     expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<string>();
   });
 
-  // TODO: Implement type narrowing for superRefine
-  // test("superRefine - type narrowing", () => {
-  //   type NarrowType = { type: string; age: number };
-  //   const schema = z
-  //     .object({
-  //       type: z.string(),
-  //       age: z.number(),
-  //     })
-  //     .nullable()
-  //     .superRefine((arg, ctx): arg is NarrowType => {
-  //       if (!arg) {
-  //         ctx.addIssue({
-  //           input: arg,
-  //           code: "custom",
-  //           message: "cannot be null",
-  //           fatal: true,
-  //         });
-  //         return false;
-  //       }
-  //       return true;
-  //     });
-  //
-  //   expectTypeOf<z.infer<typeof schema>>().toEqualTypeOf<NarrowType>();
-  //
-  //   expect(schema.safeParse({ type: "test", age: 0 }).success).toEqual(true);
-  //   expect(schema.safeParse(null).success).toEqual(false);
-  // });
+  test("superRefine - type narrowing", () => {
+    type NarrowType = { type: string; age: number };
+    const schema = z
+      .object({
+        type: z.string(),
+        age: z.number(),
+      })
+      .nullable()
+      .superRefine((arg, ctx): arg is NarrowType => {
+        if (!arg) {
+          ctx.addIssue({
+            input: arg,
+            code: "custom",
+            message: "cannot be null",
+            fatal: true,
+          });
+          return false;
+        }
+        return true;
+      });
+
+    expectTypeOf<z.infer<typeof schema>>().toEqualTypeOf<NarrowType>();
+
+    expect(schema.safeParse({ type: "test", age: 0 }).success).toEqual(true);
+    expect(schema.safeParse(null).success).toEqual(false);
+  });
 });
 
 test("when", () => {

@@ -151,6 +151,10 @@ export interface ZodType<
     check: Ch,
     params?: string | core.$ZodCustomParams
   ): Ch extends (arg: any) => arg is infer R ? this & ZodType<R, core.input<this>> : this;
+  superRefine<RefinedOutput extends core.output<this>>(
+    refinement: (arg: core.output<this>, ctx: core.$RefinementCtx<core.output<this>>) => arg is RefinedOutput,
+    params?: core.$ZodSuperRefineParams
+  ): ZodType<RefinedOutput, core.input<this>>;
   superRefine(
     refinement: (arg: core.output<this>, ctx: core.$RefinementCtx<core.output<this>>) => void | Promise<void>,
     params?: core.$ZodSuperRefineParams
@@ -2644,10 +2648,18 @@ export function refine<T>(
 }
 
 // superRefine
+export function superRefine<T, RefinedOutput extends T>(
+  fn: (arg: T, payload: core.$RefinementCtx<T>) => arg is RefinedOutput,
+  params?: core.$ZodSuperRefineParams
+): core.$ZodCheck<RefinedOutput>;
 export function superRefine<T>(
   fn: (arg: T, payload: core.$RefinementCtx<T>) => void | Promise<void>,
   params?: core.$ZodSuperRefineParams
-): core.$ZodCheck<T> {
+): core.$ZodCheck<T>;
+export function superRefine<T>(
+  fn: (arg: T, payload: core.$RefinementCtx<T>) => any,
+  params?: core.$ZodSuperRefineParams
+): core.$ZodCheck<any> {
   return core._superRefine(fn, params);
 }
 
