@@ -3136,11 +3136,15 @@ test("isTransforming correctly detects catch wrappers", () => {
     .transform((x) => x)
     .catch("default");
 
-  // When converting to json schema for 'input', transform shouldn't hide behind catch.
-  const schemaJson = schema.toJSONSchema({ io: "input" });
+  const inputSchema = schema.toJSONSchema({ io: "input", unrepresentable: "any" });
+  expect(inputSchema).toEqual({
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "string",
+  });
 
-  // Transform schemas don't produce typical JSON schema definitions in input mode in the same way.
-  // Because it is correctly identified as transforming, the resulting schema should not drop
-  // important fields, but more precisely it should not crash.
-  expect(schemaJson).toBeDefined();
+  const outputSchema = schema.toJSONSchema({ io: "output", unrepresentable: "any" });
+  expect(outputSchema).toEqual({
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    default: "default",
+  });
 });
