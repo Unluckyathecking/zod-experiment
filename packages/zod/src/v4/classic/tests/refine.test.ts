@@ -524,13 +524,13 @@ describe("type refinement with type guards", () => {
   test("superRefine - type narrowing chainability", () => {
     const schema = z
       .string()
-      .superRefine((s, _ctx): s is string => {
-        return typeof s === "string";
+      .superRefine((s, _ctx): s is `${string}@example.com` => {
+        return s.endsWith("@example.com");
       })
       .min(5);
 
     expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<string>();
-    expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<string>();
+    expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<`${string}@example.com`>();
   });
 
   test("superRefine - narrowing union to single variant", () => {
