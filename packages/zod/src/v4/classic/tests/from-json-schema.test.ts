@@ -132,6 +132,37 @@ test("tuple with prefixItems (draft-2020-12)", () => {
   expect(() => schema.parse(["hello", "world"])).toThrow();
 });
 
+test("tuple with prefixItems allows extra items by default (draft-2020-12)", () => {
+  const schema = fromJSONSchema({
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "array",
+    prefixItems: [{ type: "string" }],
+  });
+  expect(schema.parse(["hello", 42, true])).toEqual(["hello", 42, true]);
+});
+
+test("tuple with prefixItems respects items schema (draft-2020-12)", () => {
+  const schema = fromJSONSchema({
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "array",
+    prefixItems: [{ type: "string" }],
+    items: { type: "number" },
+  });
+  expect(schema.parse(["hello", 1, 2])).toEqual(["hello", 1, 2]);
+  expect(() => schema.parse(["hello", 1, "extra"])).toThrow();
+});
+
+test("tuple with prefixItems and items false rejects extra items (draft-2020-12)", () => {
+  const schema = fromJSONSchema({
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "array",
+    prefixItems: [{ type: "string" }],
+    items: false,
+  });
+  expect(schema.parse(["hello"])).toEqual(["hello"]);
+  expect(() => schema.parse(["hello", 42])).toThrow();
+});
+
 test("tuple with items array (draft-7)", () => {
   const schema = fromJSONSchema({
     $schema: "http://json-schema.org/draft-07/schema#",
@@ -141,6 +172,26 @@ test("tuple with items array (draft-7)", () => {
   });
   expect(schema.parse(["hello", 42])).toEqual(["hello", 42]);
   expect(() => schema.parse(["hello", 42, "extra"])).toThrow();
+});
+
+test("tuple with items array allows extra items by default (draft-7)", () => {
+  const schema = fromJSONSchema({
+    $schema: "http://json-schema.org/draft-07/schema#",
+    type: "array",
+    items: [{ type: "string" }],
+  });
+  expect(schema.parse(["hello", 42, true])).toEqual(["hello", 42, true]);
+});
+
+test("tuple with items array respects additionalItems schema (draft-7)", () => {
+  const schema = fromJSONSchema({
+    $schema: "http://json-schema.org/draft-07/schema#",
+    type: "array",
+    items: [{ type: "string" }],
+    additionalItems: { type: "number" },
+  });
+  expect(schema.parse(["hello", 1, 2])).toEqual(["hello", 1, 2]);
+  expect(() => schema.parse(["hello", 1, "extra"])).toThrow();
 });
 
 test("enum schema", () => {
@@ -892,4 +943,15 @@ test("Date default is coerced to its JSON string form", () => {
   const date = new Date("2026-01-02T03:04:05.000Z");
   const schema = fromJSONSchema({ type: "string", default: date as any });
   expect(schema.parse(undefined)).toBe(date.toISOString());
+});
+
+test("array with uniqueItems", () => {
+  const schema = fromJSONSchema({
+    type: "array",
+    items: { type: "number" },
+    uniqueItems: true,
+  });
+
+  expect(schema.parse([1, 2, 3])).toEqual([1, 2, 3]);
+  expect(() => schema.parse([1, 2, 1])).toThrow();
 });

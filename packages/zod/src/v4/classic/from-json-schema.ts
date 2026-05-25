@@ -143,6 +143,16 @@ function resolveRef(ref: string, ctx: ConversionContext): JSONSchema.JSONSchema 
   throw new Error(`Reference not found: ${ref}`);
 }
 
+function getTupleRest(restSchema: JSONSchema._JSONSchema | undefined, ctx: ConversionContext): ZodType | undefined {
+  if (restSchema === false) {
+    return undefined;
+  }
+  if (restSchema === undefined || restSchema === true) {
+    return z.any();
+  }
+  return convertSchema(restSchema, ctx);
+}
+
 function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext): ZodType {
   // Handle unsupported features
   if (schema.not !== undefined) {
@@ -458,7 +468,6 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
     }
 
     case "array": {
-      // TODO: uniqueItems is not supported
       // TODO: contains/minContains/maxContains are not supported
       // Check if this is a tuple (prefixItems or items as array)
       const prefixItems = schema.prefixItems;
@@ -467,10 +476,7 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
       if (prefixItems && Array.isArray(prefixItems)) {
         // Tuple with prefixItems (draft-2020-12)
         const tupleItems = prefixItems.map((item) => convertSchema(item as JSONSchema.JSONSchema, ctx));
-        const rest =
-          items && typeof items === "object" && !Array.isArray(items)
-            ? convertSchema(items as JSONSchema.JSONSchema, ctx)
-            : undefined;
+        const rest = !Array.isArray(items) ? getTupleRest(items, ctx) : undefined;
         if (rest) {
           zodSchema = z.tuple(tupleItems as [ZodType, ...ZodType[]]).rest(rest);
         } else {
@@ -486,10 +492,7 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
       } else if (Array.isArray(items)) {
         // Tuple with items array (draft-7)
         const tupleItems = items.map((item) => convertSchema(item as JSONSchema.JSONSchema, ctx));
-        const rest =
-          schema.additionalItems && typeof schema.additionalItems === "object"
-            ? convertSchema(schema.additionalItems as JSONSchema.JSONSchema, ctx)
-            : undefined; // additionalItems: false means no rest, handled by default tuple behavior
+        const rest = getTupleRest(schema.additionalItems, ctx);
         if (rest) {
           zodSchema = z.tuple(tupleItems as [ZodType, ...ZodType[]]).rest(rest);
         } else {
@@ -519,6 +522,25 @@ function convertBaseSchema(schema: JSONSchema.JSONSchema, ctx: ConversionContext
       } else {
         // No items specified - array of any
         zodSchema = z.array(z.any());
+      }
+
+      if (schema.uniqueItems === true) {
+        zodSchema = zodSchema.refine(
+          (data: any) => {
+            if (!Array.isArray(data) || data.length <= 1) return true;
+            const seen = new Set();
+            for (const item of data) {
+              const key =
+                typeof item === "object" && item !== null
+                  ? typeof item + ":" + JSON.stringify(item)
+                  : typeof item + ":" + String(item);
+              if (seen.has(key)) return false;
+              seen.add(key);
+            }
+            return true;
+          },
+          { message: "Array items must be unique" }
+        );
       }
       break;
     }
